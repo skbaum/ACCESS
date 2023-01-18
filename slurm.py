@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 #  Test program for connecting to Slurm MySQL database on faster.
+#  Extra stuff.
 
 import sys
 import os
