@@ -11,8 +11,6 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 import psycopg2
-from psycopg2 import connect
-from psycopg2 import OperationalError, errorcodes, errors
 from amieclient import AMIEClient
 
 test = 0
@@ -102,9 +100,10 @@ def amiedb_call(sql,data,script_name,results):
         print(" AMIEDB_CALL: data = ",data)
     try:
         conn = psycopg2.connect(host='localhost',database=dbase,user=dbuser,password=pw)
-    except:
-        print(" AMIEDB_CALL: Error connecting to database in ",script_name)
-        print(" AMIEDB_CALL: Problematic SQL: ",sql)
+    except Exception as e:
+        print("AMIEDB_CALL: Error connecting to database in ",script_name)
+        print("AMIEDB_CALL: Problematic SQL: ",sql)
+        print("ERROR: ",str(e))
     cur = conn.cursor()
     try:
         cur.execute(sql,data)
@@ -120,7 +119,7 @@ def amiedb_call(sql,data,script_name,results):
             results = []
             if diag > 0:
                 print(" AMIEDB_CALL: No cur.fetchall() results to process.")
-    except (Exception, psycopg2.DatabaseError) as error:
+    except (Exception, psycopg2.DatabaseError):
         logging.error("*************** DB transaction error ***************: ",exc_info=True)
 #  This executes after either 'try' or 'except'.
     finally:
@@ -312,7 +311,7 @@ for packet in filtered_packets:
             site_person_id = packet.SitePersonId
             try:
                 access_id = next(item for item in site_person_id if item["Site"] == "X-PORTAL")['PersonID']
-            except Exception as e:
+            except Exception:
                 msg1 = "ERROR: ACCESS ID not found in RPC packet for PI " + first_name + " " + last_name + " with global ID " + pi_global_id + ". Setting to 'unknown'."
                 print(msg1)
                 logging.info(script_name + ": " + msg1)
@@ -823,7 +822,7 @@ for packet in filtered_packets:
                     amiedb_call(sql,data,script_name,results)
                     try:
                         (first_name,last_name,email,previous_units,previous_start_date,previous_end_date,access_id) = results[0]
-                    except Exception as e:
+                    except Exception:
                         msg1 = "Problem extracting from 'local_info' for RPC 'transfer' request for " + person_id + " on project " + project_id + " on cluster " + cluster + "."
                     print("previous_units = ",previous_units)
 
@@ -1291,7 +1290,7 @@ for packet in filtered_packets:
                     print(" Packet info for trans_rec_id ",trans_rec_id," for user ",person_id," already processed.  Skipping.")
                     continue
 #  Problem finding packet in 'approval' table.  Skip.
-            except Exception as e:
+            except Exception:
                 print("Problem finding 'trans_rec_id' ",trans_rec_id," in 'approval' table. Skipping.")
                 continue
 
@@ -1345,7 +1344,7 @@ for packet in filtered_packets:
                                 old_value = results[0][0]
                                 print(" key = ",str(key)," new value = ",str(new_value)," old value = ",str(old_value))
                                 fmod.write(" key = " + str(key) + " new value = " + str(new_value) + " old value = " + str(old_value) + "\n")
-                            except Exception as e:
+                            except Exception:
 #                                print(" Tag '",key,"' not found in 'data_tbl'. Skipping.")
                                 continue
                             subtag = 'NULL'
@@ -1973,7 +1972,7 @@ for packet in filtered_packets:
                 results = []
                 amiedb_call(sql,data,script_name,results)
                 print("Approval status for 'request_account_inactivate' successfully reset to 'approved' for trans_rec_id = ",trans_rec_id,".")
-            except Exception as e:
+            except Exception:
                 print("Problem setting approval_status to approved in approve table.  Skipping.")
 #  Check the approval_status we just set.
 #            sql = "SELECT approval_status FROM approval WHERE trans_rec_id = %s"

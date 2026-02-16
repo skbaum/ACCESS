@@ -11,7 +11,7 @@
 #    usage_comparison_aces-2025-07-21.txt
 
 from configparser import ConfigParser
-from datetime import datetime, date
+from datetime import datetime
 
 import sys
 import logging
@@ -131,7 +131,7 @@ def amiedb_call(sql, data, script_name, results):
         conn = psycopg2.connect(
             host="localhost", database=dbase, user=dbuser, password=pw
         )
-    except Exception as e:
+    except Exception:
         print(" AMIEDB_CALL: Error connecting to database in ", script_name)
         print(" AMIEDB_CALL: Problematic SQL: ", sql)
     cursor = conn.cursor()
@@ -451,7 +451,7 @@ for project_id in aces_project_ids:
     print("Raw SU usage from xdusage: ", xdusage_charges)
     try:
         xdusage_charges = float(xdusage_charges)
-    except Exception as e:
+    except Exception:
         xdusage_charges = 0.0
     print("Float SU usage from xdusage: ",xdusage_charges)
 
@@ -566,7 +566,7 @@ if corrections == 1:
                 usage_psql_list.append(postgresql_tot_list[count])
                 count_psql_list.append(postgresql_count_list[count])
             count =  count + 1
-        except Exception as e:
+        except Exception:
             continue
 #            print("Divide by zero for Slurm acct. ",slurm_no)
 #        print("count = ",count)
@@ -613,16 +613,16 @@ if corrections == 1:
         try:
             cdiff = cpl - cal
             cdiff = int(count_psql_list[n]) - int(counts_access_list[n])
-        except Exception as e:
+        except Exception:
             cdiff = 0
         print("cdiff = ",cdiff," cpl = ",cpl," cal =",cal)
         try:
             upl = str(round(float(usage_psql_list[n]),2))
-        except Exception as e:
+        except Exception:
             upl = 0.0
         try:
             ual = str(round(float(usage_access_list[n]),2))
-        except Exception as e:
+        except Exception:
             ual = 0.0
         print("upl = ",upl," ual = ",ual)
         results_str = (str(slurm_check_list[n]).ljust(10)
