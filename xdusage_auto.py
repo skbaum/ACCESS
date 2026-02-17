@@ -5,23 +5,13 @@
 #  of the missing IDs is changed to 'N' in 'usage_compute_aces' and the reports sent to ACCESS again.
 
 from configparser import ConfigParser
-from datetime import datetime,date
-from collections import namedtuple
 
-from pprint import pprint
-import inspect
 import sys
-import argparse
 import logging
-import os
-import json
 import requests
-from requests.auth import HTTPBasicAuth
-from datetime import datetime,date,timedelta
 import psycopg2
-from psycopg2 import connect
-from psycopg2 import OperationalError, errorcodes, errors
-import mysql.connector
+from datetime import datetime,timedelta
+#import mysql.connector
 
 #parser = argparse.ArgumentParser()
 #parser.add_argument("output", help="Enter 'counts', 'usage' or 'jobs' to specify desired output.")
@@ -39,7 +29,7 @@ info_types = ['counts','usage','jobs']
 
 amie_config = "/adm/AMS/ACCESS/bin/amie.ini"
 
-skip_int = 0
+skip_int = 1
 #  Command-line argument processing
 help_list = ['-h','--h','-H','--H','-help','--help','-Help','--Help']
 #  Check for the presence of a command-line argument.
@@ -69,7 +59,7 @@ if len(sys.argv) > 1:
                 sys.exit()
             try:
                 int_test = int(slurm_no)
-            except Exception as e:
+            except Exception:
                 print("The Slurm account number ",slurm_no," is not an integer. Try again.")
 #            print("itype = ",itype," Slurm no. = ",slurm_no," cluster = ",resource_name)
             skip_int = 1
@@ -85,7 +75,7 @@ def amiedb_call(sql,data,script_name,results):
         print(" AMIEDB_CALL: data = ",data)
     try:
         conn = psycopg2.connect(host='localhost',database=dbase,user=dbuser,password=pw)
-    except:
+    except Exception:
         print(" AMIEDB_CALL: Error connecting to database in ",script_name)
         print(" AMIEDB_CALL: Problematic SQL: ",sql)
     cursor = conn.cursor()
@@ -99,12 +89,13 @@ def amiedb_call(sql,data,script_name,results):
                 print(" AMIEDB_CALL: No. of matches: ",len_matches," match(es) = ",matches)
             for match in matches:
                 results.append(match)
-        except:
+        except Exception:
             results = []
             if diag > 0:
                 print(" AMIEDB_CALL: No cursor.fetchall() results to process.")
-    except (Exception, psycopg2.DatabaseError) as error:
+    except (Exception, psycopg2.DatabaseError) as e:
         logging.error("*************** DB transaction error ***************: ",exc_info=True)
+        print("ERROR: ",str(e))
 #  This executes after either 'try' or 'except'.
     finally:
         if conn:
@@ -131,15 +122,15 @@ def tstamp():
     tst = str(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     return tst
 
-def unix_to_utc(unix_timestamp):
-  """
-  Converts a Unix timestamp to a UTC datetime object.
-  Args:
-    unix_timestamp: An integer or float representing the Unix timestamp.
-  Returns:
-    A timezone-aware datetime object in UTC.
-  """
-  return datetime.fromtimestamp(unix_timestamp, tz=timezone.utc)
+#def unix_to_utc(unix_timestamp):
+#  """
+#  Converts a Unix timestamp to a UTC datetime object.
+#  Args:
+#    unix_timestamp: An integer or float representing the Unix timestamp.
+#  Returns:
+#    A timezone-aware datetime object in UTC.
+#  """
+#  return datetime.fromtimestamp(unix_timestamp, tz=timezone.utc)
 
 def datetime_string_to_unix_timestamp(datetime_str, format_str):
     """
@@ -203,7 +194,7 @@ if skip_int == 1:
     results = []
     amiedb_call(sql,data,script_name,results)
     if len(results) == 0:
-        print("Slurm account number ",slurm_no," is not a valid ",cluster," number. Try again.")
+        print("Slurm account number ",slurm_no," is not a valid ACES number. Try again.")
         sys.exit()
     (tamu_project_id,grant_number) = results[0]
 
@@ -400,7 +391,7 @@ else:
 #        sql = "SELECT serial_no FROM usage_compute_aces WHERE project_id = %s AND status = 'Y'"
 #        data = (str(tamu_project_id),)
         sql = "SELECT serial_no FROM usage_compute_aces WHERE project_id = %s AND status = 'Y' AND submit_time > %s AND submit_time < %s"
-        data = (str(tamu_project_id),int(utc_start_date),int(utc_end_date),)
+        data = (str(tamu_project_id),utc_start_date,utc_end_date,)
     elif resource_name == 'faster':
         sql = "SELECT serial_no FROM usage_compute_fix WHERE project_id = %s AND status = 'Y' AND submit_time > %s AND submit_time < %s"
         data = (str(tamu_project_id),start_date,sql_end_date,)
